@@ -96,8 +96,8 @@ if __name__ == '__main__':
     n_rank = 10
 
     n_iter = 10000
-    n_hidden = 20
-    loss_step = 50
+    n_hidden = 100
+    loss_step = 200
 
     model = net.RankNet(net.MLP(n_dim, n_hidden))
     optimizer = optimizers.Adam()
