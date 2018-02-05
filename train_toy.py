@@ -1,3 +1,4 @@
+# -*- coding:utf8 -*-
 import numpy as np
 from chainer import Variable, optimizers
 from sklearn.cross_validation import train_test_split
@@ -12,10 +13,10 @@ from sklearn.preprocessing import StandardScaler
 
 
 FEATURE_FILEPATH_ALL = '/home/kongxiangfei/workspaces/pycharm_workspaces/eventranker/datasets/all.txt'
-# FEATURE_FILEPATH_TRAIN = '/home/kongxiangfei/workspaces/pycharm_workspaces/eventranker/datasets/train.txt'
-FEATURE_FILEPATH_TRAIN = 'E:/workspace/pycharm_projects/lunwen/OPEREVENT/eventranker/datasets/train.txt'
-# FEATURE_FILEPATH_TEST = '/home/kongxiangfei/workspaces/pycharm_workspaces/eventranker/datasets/test.txt'
-FEATURE_FILEPATH_TEST = 'E:/workspace/pycharm_projects/lunwen/OPEREVENT/eventranker/datasets/test.txt'
+FEATURE_FILEPATH_TRAIN = '/home/kongxiangfei/workspaces/pycharm_workspaces/eventranker/datasets/train.txt'
+# FEATURE_FILEPATH_TRAIN = 'E:/workspace/pycharm_projects/lunwen/OPEREVENT/eventranker/datasets/train.txt'
+FEATURE_FILEPATH_TEST = '/home/kongxiangfei/workspaces/pycharm_workspaces/eventranker/datasets/test.txt'
+# FEATURE_FILEPATH_TEST = 'E:/workspace/pycharm_projects/lunwen/OPEREVENT/eventranker/datasets/test.txt'
 
 
 # y ~ [1, n_rank] x ~ N(x|w * y, sigma)
@@ -88,7 +89,7 @@ if __name__ == '__main__':
     labels_data_processed_train, qid_data_processed_train, rel_data_processed_train, features_data_processed_train, X_train, y_train, df_train = clean_datasets(FEATURE_FILEPATH_TRAIN)
     labels_data_processed_test, qid_data_processed_test, rel_data_processed_test, features_data_processed_test, X_test, y_test, df_test = clean_datasets(FEATURE_FILEPATH_TEST)
     n_dim = features_data_processed_train.shape[1]
-    n_rank = 10
+    n_rank = labels_data_processed_train.shape[1]
 
     n_iter = 2000
     n_hidden = 20
