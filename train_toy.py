@@ -2,6 +2,8 @@ import numpy as np
 from chainer import Variable, optimizers
 from sklearn.cross_validation import train_test_split
 import net
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
