@@ -29,7 +29,7 @@ def make_dataset(n_dim, n_rank, n_sample, sigma):
     return X, ys
 
 
-def ndcg(y_true, y_score, k=100):
+def ndcg(y_true, y_score, k=10):
     y_true = y_true.ravel()
     y_score = y_score.ravel()
     y_true_sorted = sorted(y_true, reverse=True)
@@ -88,10 +88,14 @@ if __name__ == '__main__':
     # 训练集和测试集
     labels_data_processed_train, qid_data_processed_train, rel_data_processed_train, features_data_processed_train, X_train, y_train, df_train = clean_datasets(FEATURE_FILEPATH_TRAIN)
     labels_data_processed_test, qid_data_processed_test, rel_data_processed_test, features_data_processed_test, X_test, y_test, df_test = clean_datasets(FEATURE_FILEPATH_TEST)
+    features_data_processed_train = features_data_processed_train.astype('float32')
+    features_data_processed_test = features_data_processed_test.astype('float32')
     n_dim = features_data_processed_train.shape[1]
-    n_rank = labels_data_processed_train.shape[1]
+    query_list_of_train = np.unique(qid_data_processed_train).tolist()
+    query_list_of_test = np.unique(qid_data_processed_test).tolist()
+    n_rank = 10
 
-    n_iter = 2000
+    n_iter = 10000
     n_hidden = 20
     loss_step = 50
 
@@ -103,24 +107,37 @@ if __name__ == '__main__':
     train_ndcgs = []
     test_ndcgs = []
     for step in range(n_iter):
-        i, j = np.random.randint(N_train, size=2)
-        x_i = Variable(X_train[i].reshape(1, -1))
-        x_j = Variable(X_train[j].reshape(1, -1))
-        y_i = Variable(y_train[i])
-        y_j = Variable(y_train[j])
+        query_id_index = np.random.randint(len(query_list_of_train))
+        query_id = query_list_of_train[query_id_index]
+        list_index_of_query_id = [list_index for list_index, query in enumerate(qid_data_processed_train) if query == query_id][0:10]
+        i, j = np.random.randint(len(list_index_of_query_id), size=2)
+        x_i = Variable(features_data_processed_train[list_index_of_query_id[i]].reshape(1, -1))
+        x_j = Variable(features_data_processed_train[list_index_of_query_id[j]].reshape(1, -1))
+        y_i = Variable(rel_data_processed_train[i])
+        y_j = Variable(rel_data_processed_train[j])
         model.zerograds()
         loss = model(x_i, x_j, y_i, y_j)
         loss.backward()
         optimizer.update()
         if (step + 1) % loss_step == 0:
-            train_score = model.predictor(Variable(X_train))
-            test_score = model.predictor(Variable(X_test))
-            train_ndcg = ndcg(y_train, train_score.data)
-            test_ndcg = ndcg(y_test, test_score.data)
+            train_ndcg = 0.0
+            test_ndcg = 0.0
+            for query_id in query_list_of_train:
+                list_index_of_query_id = [list_index for list_index, query in enumerate(qid_data_processed_train) if
+                                          query == query_id][0:10]
+                train_score = model.predictor(Variable(features_data_processed_train[list_index_of_query_id]))
+                train_ndcg += ndcg(rel_data_processed_train[list_index_of_query_id], train_score.data)
+            train_ndcg = train_ndcg / len(query_list_of_train)
+            for query_id in query_list_of_test:
+                list_index_of_query_id = [list_index for list_index, query in enumerate(qid_data_processed_test) if
+                                          query == query_id][0:10]
+                test_score = model.predictor(Variable(features_data_processed_test[list_index_of_query_id]))
+                test_ndcg += ndcg(rel_data_processed_test, test_score.data)
+            test_ndcg = test_ndcg / len(query_list_of_test)
             train_ndcgs.append(train_ndcg)
             test_ndcgs.append(test_ndcg)
             print("step: {}".format(step + 1))
-            print("NDCG@100 | train: {}, test: {}".format(
+            print("NDCG@10 | train: {}, test: {}".format(
                 train_ndcg, test_ndcg))
 
     sns.set_context("poster")
@@ -134,4 +151,4 @@ if __name__ == '__main__':
     plt.ylabel("NDCG@100")
     plt.ylim(0, 1.1)
     plt.tight_layout()
-    plt.show()
+    plt.savefig('./ndcg_value.png')
