@@ -6,6 +6,16 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pyltr
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
+
+FEATURE_FILEPATH_ALL = '/home/kongxiangfei/workspaces/pycharm_workspaces/eventranker/datasets/all.txt'
+# FEATURE_FILEPATH_TRAIN = '/home/kongxiangfei/workspaces/pycharm_workspaces/eventranker/datasets/train.txt'
+FEATURE_FILEPATH_TRAIN = 'E:/workspace/pycharm_projects/lunwen/OPEREVENT/eventranker/datasets/train.txt'
+# FEATURE_FILEPATH_TEST = '/home/kongxiangfei/workspaces/pycharm_workspaces/eventranker/datasets/test.txt'
+FEATURE_FILEPATH_TEST = 'E:/workspace/pycharm_projects/lunwen/OPEREVENT/eventranker/datasets/test.txt'
 
 
 # y ~ [1, n_rank] x ~ N(x|w * y, sigma)
@@ -32,25 +42,63 @@ def ndcg(y_true, y_score, k=100):
     ndcg = dcg / ideal_dcg
     return ndcg
 
+def clean_datasets(dataset_filepath):
+    # Read training data
+    with open(dataset_filepath, 'r') as trainfile:
+        train_x, train_y, train_qids, _ = pyltr.data.letor.read_dataset(trainfile)
+        df_train_features = pd.DataFrame(train_x, columns=['feature_{}'.format(id) for id in range(1, train_x.shape[1]+1)])
+        df_train_rel = pd.DataFrame({'rel': train_y})
+        df_train_qid = pd.DataFrame({'qid': train_qids})
+        df_train = pd.concat([df_train_rel, df_train_qid, df_train_features], axis=1)
+        features = [x for x in df_train.columns if x not in ['rel', 'qid']]
+        target = ['rel']
+
+    # scale features
+    df_train[features] = StandardScaler(with_mean=0, with_std=1).fit_transform(df_train[features])
+    X_train = np.array(df_train[features])
+    y_train = np.array(df_train[target])
+
+    # filter data
+    labels_data_pre_list = []
+    features_data_pre_list = []
+    qid_data_pre_list = []
+    rel_data_pre_list = []
+    for index_id, query_id in enumerate(list(set(train_qids))):
+        list_index_of_query_id = [list_index for list_index, query in enumerate(train_qids) if query == query_id][0:10]
+        if len(list_index_of_query_id) != 10:
+            continue
+        qid_data_by_query = np.repeat(query_id, 10, axis=0).reshape((10, 1))
+        rel_data_by_query = np.arange(1, 11).reshape((10, 1))
+        labels_data_by_query = np.identity(10)
+        features_data_by_query = X_train[list_index_of_query_id, :]
+        labels_data_pre_list.append(labels_data_by_query)
+        qid_data_pre_list.append(qid_data_by_query)
+        rel_data_pre_list.append(rel_data_by_query)
+        features_data_pre_list.append(features_data_by_query)
+        # print features_data_by_query.shape[0], qid_data_by_query.shape[0]
+    labels_data_processed = np.vstack(labels_data_pre_list)
+    qid_data_processed = np.vstack(qid_data_pre_list)
+    rel_data_processed = np.vstack(rel_data_pre_list)
+    features_data_processed = np.vstack(features_data_pre_list)
+    return labels_data_processed, qid_data_processed, rel_data_processed, features_data_processed, X_train, y_train, df_train
+
+
 if __name__ == '__main__':
-    np.random.seed(0)
-    n_dim = 50
-    n_rank = 5
-    n_sample = 1000
-    sigma = 5.
-    X, ys = make_dataset(n_dim, n_rank, n_sample, sigma)
-    X_train, X_test, y_train, y_test = train_test_split(X, ys, test_size=0.33)
+    # 训练集和测试集
+    labels_data_processed_train, qid_data_processed_train, rel_data_processed_train, features_data_processed_train, X_train, y_train, df_train = clean_datasets(FEATURE_FILEPATH_TRAIN)
+    labels_data_processed_test, qid_data_processed_test, rel_data_processed_test, features_data_processed_test, X_test, y_test, df_test = clean_datasets(FEATURE_FILEPATH_TEST)
+    n_dim = features_data_processed_train.shape[1]
+    n_rank = 10
 
     n_iter = 2000
     n_hidden = 20
     loss_step = 50
-    N_train = np.shape(X_train)[0]
 
     model = net.RankNet(net.MLP(n_dim, n_hidden))
     optimizer = optimizers.Adam()
     optimizer.setup(model)
 
-    N_train = np.shape(X_train)[0]
+    N_train = np.shape(features_data_processed_train)[0]
     train_ndcgs = []
     test_ndcgs = []
     for step in range(n_iter):
