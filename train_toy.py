@@ -137,8 +137,7 @@ if __name__ == '__main__':
             train_ndcgs.append(train_ndcg)
             test_ndcgs.append(test_ndcg)
             print("step: {}".format(step + 1))
-            print("NDCG@10 | train: {}, test: {}".format(
-                train_ndcg, test_ndcg))
+            print("NDCG@10 | train: {}, test: {}".format(train_ndcg, test_ndcg))
 
     sns.set_context("poster")
     plt.plot(train_ndcgs, label="Train")
@@ -148,7 +147,7 @@ if __name__ == '__main__':
     plt.xticks(xx, labels, rotation=45)
     plt.legend(loc="best")
     plt.xlabel("step")
-    plt.ylabel("NDCG@100")
+    plt.ylabel("NDCG@10")
     plt.ylim(0, 1.1)
     plt.tight_layout()
     plt.savefig('./ndcg_value.png')
